@@ -35,7 +35,7 @@ function Footer() {
           <div className="order-1 md:order-2 flex flex-col items-center text-center select-none">
             <Link to="/" className="flex flex-col items-center gap-4">
               <img
-                src="/images/logo.png"
+                src={`${import.meta.env.BASE_URL}images/logo.png`}
                 alt="Advayacare logo"
                 width="224"
                 height="224"

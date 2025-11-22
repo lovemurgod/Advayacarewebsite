@@ -46,7 +46,7 @@ const Header = () => {
           {/* Logo + tagline (single instance) */}
           <Link to="/" className="flex items-center gap-3 ml-auto select-none">
             <img
-              src="/images/logo.png"
+              src={`${import.meta.env.BASE_URL}images/logo.png`}
               alt="Advayacare logo"
               width="48"
               height="48"

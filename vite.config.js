@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
+// Configure Vite for GitHub Pages project deployment under /Advayacarewebsite/
 export default defineConfig({
-  plugins: [react()],
-  base: './',
+  base: '/Advayacarewebsite/',
+  plugins: [react()]
 });
