@@ -8,7 +8,7 @@ function ProductCard({ product }) {
 
   if (!product) return null;
 
-  const { id, name, price_inr, benefits_brief, images = [] } = product;
+  const { id, name, price_inr, benefits_brief, one_line_summary, images = [] } = product;
 
   const resolveImage = (filename) => {
     if (!filename) return undefined;
@@ -54,9 +54,9 @@ function ProductCard({ product }) {
           <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1 line-clamp-2">
             {name}
           </h3>
-          {benefits_brief && (
-            <p className="text-sm text-[#333333] line-clamp-3">
-              {benefits_brief}
+          {(one_line_summary || benefits_brief) && (
+            <p className="text-sm text-[#333333] line-clamp-2">
+              {one_line_summary || benefits_brief}
             </p>
           )}
         </div>

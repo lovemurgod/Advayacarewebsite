@@ -12,14 +12,14 @@ function HomePage() {
 		<div className="space-y-12 lg:space-y-16">
 			{/* STATEMENT HERO (simplified, no container) */}
 			<section className="pt-4 sm:pt-6 lg:pt-8">
-				<div className="space-y-5 max-w-3xl">
+				<div className="space-y-5 max-w-3xl mx-auto text-center">
 					<h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#D4AF37] leading-tight">
 						Glow with intention
 					</h1>
-					<p className="text-base sm:text-lg text-white max-w-xl">
+					<p className="text-base sm:text-lg text-white max-w-xl mx-auto">
 						Vegan, organic skincare for Indian skin. Thoughtful rituals that honour your skin&apos;s rhythm and the climate it lives in.
 					</p>
-					<div className="flex flex-wrap gap-3 pt-2">
+					<div className="flex flex-wrap gap-3 pt-2 justify-center">
 						<Link
 							to="/shop"
 							className="inline-flex items-center rounded-full bg-[#D4AF37] px-7 py-3 text-sm font-medium text-neutral-900 hover:bg-[#c8a031] transition shadow-md"
