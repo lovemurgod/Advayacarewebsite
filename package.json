@@ -8,9 +8,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "seed:products": "node scripts/seed-products.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.2"

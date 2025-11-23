@@ -8,7 +8,7 @@ function ProductCard({ product }) {
 
   if (!product) return null;
 
-  const { id, name, price_inr, benefits_brief, one_line_summary, images = [] } = product;
+  const { id, name, price_inr, benefits_brief, one_line_summary, images = [], filterTags = [] } = product;
 
   const resolveImage = (filename) => {
     if (!filename) return undefined;
@@ -65,6 +65,18 @@ function ProductCard({ product }) {
             {formattedPrice}
           </span>
         </div>
+        {filterTags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {filterTags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center rounded-full border border-black/20 bg-black/5 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-900"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="mt-3 flex flex-col sm:flex-row gap-2">
           <button
             type="button"
