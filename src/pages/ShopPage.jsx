@@ -1,18 +1,52 @@
 import React from "react";
-import products from "../data/products.json";
 import ProductCard from "../components/ProductCard";
+import { supabase } from "../lib/supabaseClient";
 
 function ShopPage() {
   const [selectedFilter, setSelectedFilter] = React.useState("All");
   const [isOpen, setIsOpen] = React.useState(false);
+  const [products, setProducts] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
 
   const categories = ["All", "Face", "Body", "Hair"];
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function loadProducts() {
+      try {
+        setLoading(true);
+        setError(null);
+        const { data, error: dbError } = await supabase
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: true });
+        if (!isMounted) return;
+        if (dbError) {
+          setError("Could not load products.");
+          setProducts([]);
+          return;
+        }
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!isMounted) return;
+        setError("Something went wrong loading products.");
+        setProducts([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadProducts();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredProducts =
     selectedFilter === "All"
       ? products
       : products.filter((product) => {
-          const tags = product.filterTags || [];
+          const tags = product.filter_tags || product.filterTags || [];
           return tags.includes(selectedFilter);
         });
 
@@ -79,11 +113,19 @@ function ShopPage() {
           )}
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-8">
-        {filteredProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+      {loading && (
+        <p className="mt-8 text-sm text-white/80">Loading products...</p>
+      )}
+      {!loading && error && (
+        <p className="mt-8 text-sm text-red-400">{error}</p>
+      )}
+      {!loading && !error && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-8">
+          {filteredProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,11 +1,44 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import products from "../data/products.json";
 import ProductCard from "../components/ProductCard";
+import { supabase } from "../lib/supabaseClient";
 
 function HomePage() {
-	// pick 3 featured products if available
-	const featured = Array.isArray(products) ? products.slice(0, 3) : [];
+	const [featured, setFeatured] = React.useState([]);
+	const [loading, setLoading] = React.useState(true);
+	const [error, setError] = React.useState(null);
+
+	React.useEffect(() => {
+		let isMounted = true;
+		async function loadFeatured() {
+			try {
+				setLoading(true);
+				setError(null);
+				const { data, error: dbError } = await supabase
+					.from("products")
+					.select("*")
+					.order("created_at", { ascending: true })
+					.limit(3);
+				if (!isMounted) return;
+				if (dbError) {
+					setError("Could not load featured products.");
+					setFeatured([]);
+					return;
+				}
+				setFeatured(Array.isArray(data) ? data : []);
+			} catch (e) {
+				if (!isMounted) return;
+				setError("Something went wrong loading products.");
+				setFeatured([]);
+			} finally {
+				if (isMounted) setLoading(false);
+			}
+		}
+		loadFeatured();
+		return () => {
+			isMounted = false;
+		};
+	}, []);
 
 
 	return (
@@ -105,7 +138,7 @@ function HomePage() {
 			</section>
 
 			{/* FEATURED RITUALS */}
-			{featured.length > 0 && (
+			{!loading && !error && featured.length > 0 && (
 				<section className="space-y-4">
 					<div className="flex items-center justify-between gap-3">
 						<h2 className="text-2xl font-semibold text-[#D4AF37]">
@@ -124,6 +157,16 @@ function HomePage() {
 						))}
 					</div>
 				</section>
+			)}
+			{loading && (
+				<p className="text-center text-sm text-white/80">
+					Loading featured rituals...
+				</p>
+			)}
+			{!loading && error && (
+				<p className="text-center text-sm text-red-400">
+					{error}
+				</p>
 			)}
 		</div>
 	);

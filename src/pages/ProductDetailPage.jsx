@@ -1,19 +1,62 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import products from "../data/products.json";
 import { useCart } from "../context/CartContext";
+import { supabase } from "../lib/supabaseClient";
 
 function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const [product, setProduct] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
 
-  const product = products.find((p) => String(p.id) === String(id));
+  React.useEffect(() => {
+    let isMounted = true;
+    async function loadProduct() {
+      try {
+        setLoading(true);
+        setError(null);
+        const { data, error: dbError } = await supabase
+          .from("products")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        if (!isMounted) return;
+        if (dbError) {
+          setError("Could not load product.");
+          setProduct(null);
+          return;
+        }
+        setProduct(data || null);
+      } catch (e) {
+        if (!isMounted) return;
+        setError("Something went wrong loading product.");
+        setProduct(null);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    if (id) {
+      loadProduct();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
-  if (!product) {
+  if (loading) {
     return (
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10">
-        <p className="text-sm text-slate-700">Product not found</p>
+        <p className="text-sm text-white/80">Loading product...</p>
+      </div>
+    );
+  }
+
+  if (!product || error) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10">
+        <p className="text-sm text-slate-200">Product not found</p>
       </div>
     );
   }
@@ -25,8 +68,10 @@ function ProductDetailPage() {
     benefits_detail,
     use_cases,
     ingredients,
-    images = [],
+    images: dbImages,
   } = product;
+
+  const images = Array.isArray(dbImages) ? dbImages : [];
 
   const resolveImage = (filename) => {
     if (!filename) return undefined;
