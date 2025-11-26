@@ -13,7 +13,8 @@ export async function fetchCartItems() {
   const sessionId = getOrCreateSessionId();
   const { data, error } = await supabase
     .from("cart_items")
-    .select("id, product_id, quantity, products:product_id(name, price_inr)")
+    .select("id, product_id, quantity")
+    .eq("session_id", sessionId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
@@ -21,8 +22,8 @@ export async function fetchCartItems() {
   return data.map((row) => ({
     id: row.id,
     productId: row.product_id,
-    name: row.products?.name ?? "",
-    price_inr: row.products?.price_inr ?? 0,
+    name: "",
+    price_inr: 0,
     quantity: row.quantity ?? 1,
   }));
 }

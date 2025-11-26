@@ -7,6 +7,7 @@ import {
   removeCartItem as removeCartItemRemote,
   updateCartItem as updateCartItemRemote,
 } from "../lib/cartApi";
+import { ensureSupabaseGuestSession } from "../lib/authSession";
 
 const CartContext = createContext(undefined);
 
@@ -16,13 +17,16 @@ export function CartProvider({ children }) {
   const [giftCardCode, setGiftCardCode] = useState("");
 
   useEffect(() => {
-    fetchCartItems()
-      .then((remoteItems) => {
+    (async () => {
+      try {
+        await ensureSupabaseGuestSession();
+        const remoteItems = await fetchCartItems();
         setItems(remoteItems);
-      })
-      .catch(() => {
-        // ignore initial load errors in UI for now
-      });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error("Failed to initialise cart from Supabase", error);
+      }
+    })();
   }, []);
 
   const addToCart = async (product, quantity = 1) => {
