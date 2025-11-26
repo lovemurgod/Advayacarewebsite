@@ -15,10 +15,15 @@ function CartPage() {
     clearGiftCardCode,
     updateQuantity,
     removeFromCart,
+    checkout,
   } = useCart();
 
   const [localCoupon, setLocalCoupon] = useState(couponCode || "");
   const [localGiftCard, setLocalGiftCard] = useState(giftCardCode || "");
+
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutSuccess, setCheckoutSuccess] = useState("");
 
   const formattedSubtotal = subtotal.toLocaleString("en-IN", {
     style: "currency",
@@ -35,6 +40,25 @@ function CartPage() {
     currency: "INR",
     maximumFractionDigits: 0,
   });
+
+  const handleCheckout = async () => {
+    if (!items.length) return;
+    setCheckoutError("");
+    setCheckoutSuccess("");
+    setIsCheckingOut(true);
+    try {
+      const order = await checkout();
+      if (order) {
+        setCheckoutSuccess("Order created successfully. Complete payment with Razorpay.");
+      }
+    } catch (err) {
+      setCheckoutError("Failed to start checkout. Please try again.");
+      // eslint-disable-next-line no-console
+      console.error(err);
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -192,12 +216,23 @@ function CartPage() {
 
               <p className="text-[11px] text-slate-500 pt-1">
                 Discount calculations are for demonstration only. Final payment and
-                Razorpay integration will be added soon.
+                Razorpay integration will be completed during payment step.
               </p>
             </div>
+            {checkoutError && (
+              <p className="text-xs text-red-600 pt-1">{checkoutError}</p>
+            )}
+            {checkoutSuccess && (
+              <p className="text-xs text-emerald-700 pt-1">{checkoutSuccess}</p>
+            )}
 
-            <button className="btn-primary w-full mt-2" type="button">
-              Proceed to Checkout
+            <button
+              className="btn-primary w-full mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              type="button"
+              disabled={isCheckingOut || !items.length}
+              onClick={handleCheckout}
+            >
+              {isCheckingOut ? "Processing..." : "Proceed to Checkout"}
             </button>
           </aside>
         </div>

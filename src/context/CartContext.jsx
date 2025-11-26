@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  addCartItem,
+  clearCartRemote,
+  createOrder,
+  fetchCartItems,
+  removeCartItem as removeCartItemRemote,
+  updateCartItem as updateCartItemRemote,
+} from "../lib/cartApi";
 
 const CartContext = createContext(undefined);
 
@@ -7,7 +15,17 @@ export function CartProvider({ children }) {
   const [couponCode, setCouponCode] = useState("");
   const [giftCardCode, setGiftCardCode] = useState("");
 
-  const addToCart = (product, quantity = 1) => {
+  useEffect(() => {
+    fetchCartItems()
+      .then((remoteItems) => {
+        setItems(remoteItems);
+      })
+      .catch(() => {
+        // ignore initial load errors in UI for now
+      });
+  }, []);
+
+  const addToCart = async (product, quantity = 1) => {
     if (!product || !product.id) return;
 
     setItems((prev) => {
@@ -22,6 +40,7 @@ export function CartProvider({ children }) {
       return [
         ...prev,
         {
+          id: undefined,
           productId: product.id,
           name: product.name,
           price_inr: product.price_inr,
@@ -29,22 +48,72 @@ export function CartProvider({ children }) {
         },
       ];
     });
+
+    try {
+      const created = await addCartItem(product.id, quantity);
+      setItems((prev) =>
+        prev.map((item) =>
+          item.productId === product.id && item.id === undefined
+            ? { ...item, id: created.id }
+            : item
+        )
+      );
+    } catch {
+      // rollback on error
+      setItems((prev) =>
+        prev
+          .map((item) => {
+            if (item.productId === product.id) {
+              const newQty = item.quantity - quantity;
+              if (newQty <= 0) return null;
+              return { ...item, quantity: newQty };
+            }
+            return item;
+          })
+          .filter(Boolean)
+      );
+    }
   };
 
-  const removeFromCart = (productId) => {
+  const removeFromCart = async (productId) => {
+    const current = items.find((i) => i.productId === productId);
     setItems((prev) => prev.filter((item) => item.productId !== productId));
+
+    try {
+      if (current?.id) {
+        await removeCartItemRemote(current.id);
+      }
+    } catch {
+      // ignore error and let UI stay optimistic
+    }
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = async (productId, quantity) => {
     const safeQty = Math.max(1, Number(quantity) || 1);
     setItems((prev) =>
       prev.map((item) =>
         item.productId === productId ? { ...item, quantity: safeQty } : item
       )
     );
+
+    const current = items.find((i) => i.productId === productId);
+    try {
+      if (current?.id) {
+        await updateCartItemRemote(current.id, safeQty);
+      }
+    } catch {
+      // ignore error for now
+    }
   };
 
-  const clearCart = () => setItems([]);
+  const clearCart = async () => {
+    setItems([]);
+    try {
+      await clearCartRemote();
+    } catch {
+      // ignore
+    }
+  };
 
   const subtotal = useMemo(
     () =>
@@ -88,6 +157,12 @@ export function CartProvider({ children }) {
     subtotal,
     discountedTotal,
     discount,
+    checkout: async () => {
+      if (!items.length || discountedTotal <= 0) return null;
+      const order = await createOrder(discountedTotal, items);
+      await clearCart();
+      return order;
+    },
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
