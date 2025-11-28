@@ -14,28 +14,44 @@ export async function ensureSupabaseGuestSession() {
   }
 
   const sessionId = getOrCreateSessionId();
-
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mint-guest-token`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sessionId }),
-  });
+  let res;
+  let body;
+
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    });
+
+    body = await res.json().catch(() => null);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("ensureSupabaseGuestSession network error", err);
+    throw err;
+  }
+
+  // eslint-disable-next-line no-console
+  console.log("mint-guest-token status", res.status, "body", body);
 
   if (!res.ok) {
-    throw new Error("Failed to fetch guest token");
+    const msg =
+      (body && (body.error || body.message)) ||
+      `Failed to fetch guest token (status ${res.status})`;
+    throw new Error(msg);
   }
 
-  const { access_token } = await res.json();
-  if (!access_token) {
-    throw new Error("No access_token in response");
+  const accessToken = body?.access_token;
+  if (!accessToken) {
+    throw new Error("No access_token in mint-guest-token response");
   }
 
-  localStorage.setItem(TOKEN_KEY, access_token);
+  localStorage.setItem(TOKEN_KEY, accessToken);
 
   await supabase.auth.setSession({
-    access_token,
+    access_token: accessToken,
     refresh_token: "",
   });
 }
