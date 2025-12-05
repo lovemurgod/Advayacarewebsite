@@ -17,7 +17,13 @@ function ShopPage() {
         setLoading(true);
         setError(null);
         const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const res = await fetch(`${baseUrl}/functions/v1/products`);
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const res = await fetch(`${baseUrl}/functions/v1/products`, {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${anonKey}`,
+          },
+        });
         if (!res.ok) {
           throw new Error("Could not load products.");
         }

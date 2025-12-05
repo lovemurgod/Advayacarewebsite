@@ -14,7 +14,13 @@ function HomePage() {
 				setLoading(true);
 				setError(null);
 				const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-				const res = await fetch(`${baseUrl}/functions/v1/products?limit=3`);
+				const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+				const res = await fetch(`${baseUrl}/functions/v1/products?limit=3`, {
+					headers: {
+						apikey: anonKey,
+						Authorization: `Bearer ${anonKey}`,
+					},
+				});
 				if (!res.ok) {
 					throw new Error("Could not load featured products.");
 				}
