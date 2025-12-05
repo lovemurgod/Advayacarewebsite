@@ -14,7 +14,9 @@ export async function ensureSupabaseGuestSession() {
   }
 
   const sessionId = getOrCreateSessionId();
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mint-guest-token`;
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const url = `${baseUrl}/functions/v1/mint-guest-token`;
 
   let res;
   let body;
@@ -22,7 +24,11 @@ export async function ensureSupabaseGuestSession() {
   try {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
       body: JSON.stringify({ sessionId }),
     });
 
