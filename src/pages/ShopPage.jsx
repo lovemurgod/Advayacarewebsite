@@ -1,6 +1,5 @@
 import React from "react";
 import ProductCard from "../components/ProductCard";
-import { supabase } from "../lib/supabaseClient";
 
 function ShopPage() {
   const [selectedFilter, setSelectedFilter] = React.useState("All");
@@ -17,16 +16,13 @@ function ShopPage() {
       try {
         setLoading(true);
         setError(null);
-        const { data, error: dbError } = await supabase
-          .from("products")
-          .select("*")
-          .order("created_at", { ascending: true });
-        if (!isMounted) return;
-        if (dbError) {
-          setError("Could not load products.");
-          setProducts([]);
-          return;
+        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const res = await fetch(`${baseUrl}/functions/v1/products`);
+        if (!res.ok) {
+          throw new Error("Could not load products.");
         }
+        const data = await res.json();
+        if (!isMounted) return;
         setProducts(Array.isArray(data) ? data : []);
       } catch (e) {
         if (!isMounted) return;

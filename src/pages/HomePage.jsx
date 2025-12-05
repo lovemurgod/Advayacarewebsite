@@ -1,7 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
-import { supabase } from "../lib/supabaseClient";
 
 function HomePage() {
 	const [featured, setFeatured] = React.useState([]);
@@ -14,17 +13,13 @@ function HomePage() {
 			try {
 				setLoading(true);
 				setError(null);
-				const { data, error: dbError } = await supabase
-					.from("products")
-					.select("*")
-					.order("created_at", { ascending: true })
-					.limit(3);
-				if (!isMounted) return;
-				if (dbError) {
-					setError("Could not load featured products.");
-					setFeatured([]);
-					return;
+				const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+				const res = await fetch(`${baseUrl}/functions/v1/products?limit=3`);
+				if (!res.ok) {
+					throw new Error("Could not load featured products.");
 				}
+				const data = await res.json();
+				if (!isMounted) return;
 				setFeatured(Array.isArray(data) ? data : []);
 			} catch (e) {
 				if (!isMounted) return;
