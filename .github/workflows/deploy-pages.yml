@@ -39,6 +39,11 @@ jobs:
             npm install
           fi
 
+      - name: Debug env
+        run: |
+          echo "VITE_SUPABASE_URL is: '$VITE_SUPABASE_URL'"
+          echo "Anon key length: ${#VITE_SUPABASE_ANON_KEY}"
+
       - name: Build site
         run: npm run build
 
