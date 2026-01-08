@@ -1,7 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import RazorpayCheckout from "../components/RazorpayCheckout";
 
 function CartPage() {
+  const navigate = useNavigate();
   const {
     items,
     subtotal,
@@ -25,6 +28,19 @@ function CartPage() {
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState("");
 
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState(null);
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  // Customer details for payment
+  const [customerDetails, setCustomerDetails] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+
   const formattedSubtotal = subtotal.toLocaleString("en-IN", {
     style: "currency",
     currency: "INR",
@@ -45,19 +61,52 @@ function CartPage() {
     if (!items.length) return;
     setCheckoutError("");
     setCheckoutSuccess("");
+    setPaymentError("");
+
+    // Check if customer details are provided
+    if (!customerDetails.name || !customerDetails.email || !customerDetails.phone) {
+      setCheckoutError("Please provide your name, email, and phone number for checkout.");
+      return;
+    }
+
     setIsCheckingOut(true);
     try {
       const order = await checkout();
       if (order) {
-        setCheckoutSuccess("Order created successfully. Complete payment with Razorpay.");
+        setCurrentOrder(order);
+        setShowPaymentModal(true);
+        setCheckoutSuccess("Order created. Please complete payment.");
       }
     } catch (err) {
-      setCheckoutError("Failed to start checkout. Please try again.");
+      setCheckoutError("Failed to create order. Please try again.");
       // eslint-disable-next-line no-console
       console.error(err);
     } finally {
       setIsCheckingOut(false);
     }
+  };
+
+  const handlePaymentSuccess = (result) => {
+    setShowPaymentModal(false);
+    setPaymentSuccess(true);
+    setCheckoutSuccess(
+      `Payment successful! Transaction ID: ${result.transactionId}`
+    );
+    setPaymentError("");
+    // Clear form
+    setCustomerDetails({ name: "", email: "", phone: "" });
+    // Redirect to home after 2 seconds
+    setTimeout(() => {
+      navigate("/");
+    }, 2000);
+  };
+
+  const handlePaymentError = (error) => {
+    setPaymentError(error?.message || "Payment failed. Please try again.");
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentModal(false);
   };
 
   return (
@@ -132,6 +181,52 @@ function CartPage() {
             </div>
 
             <div className="space-y-3 pt-2 text-sm">
+              {/* Customer Details Section */}
+              <div className="space-y-3 bg-white bg-opacity-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-xs font-semibold text-slate-900 uppercase">
+                  Delivery Details
+                </h3>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={customerDetails.name}
+                    onChange={(e) =>
+                      setCustomerDetails({
+                        ...customerDetails,
+                        name: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#b58b2f] focus:outline-none focus:ring-0"
+                    placeholder="Full Name *"
+                  />
+                  <input
+                    type="email"
+                    value={customerDetails.email}
+                    onChange={(e) =>
+                      setCustomerDetails({
+                        ...customerDetails,
+                        email: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#b58b2f] focus:outline-none focus:ring-0"
+                    placeholder="Email Address *"
+                  />
+                  <input
+                    type="tel"
+                    value={customerDetails.phone}
+                    onChange={(e) =>
+                      setCustomerDetails({
+                        ...customerDetails,
+                        phone: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#b58b2f] focus:outline-none focus:ring-0"
+                    placeholder="Phone Number (10 digits) *"
+                  />
+                </div>
+              </div>
+
+              {/* Coupon Code */}
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-700">
                   Coupon Code
@@ -154,6 +249,7 @@ function CartPage() {
                 </div>
               </div>
 
+              {/* Gift Card Code */}
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-700">
                   Gift Card Code
@@ -213,23 +309,31 @@ function CartPage() {
                   </p>
                 )}
               </div>
-
-              <p className="text-[11px] text-slate-500 pt-1">
-                Discount calculations are for demonstration only. Final payment and
-                Razorpay integration will be completed during payment step.
-              </p>
             </div>
+
+            {/* Error Messages */}
             {checkoutError && (
               <p className="text-xs text-red-600 pt-1">{checkoutError}</p>
             )}
-            {checkoutSuccess && (
+            {paymentError && (
+              <p className="text-xs text-red-600 pt-1">{paymentError}</p>
+            )}
+            
+            {/* Success Messages */}
+            {checkoutSuccess && !paymentSuccess && (
               <p className="text-xs text-emerald-700 pt-1">{checkoutSuccess}</p>
             )}
+            {paymentSuccess && (
+              <p className="text-xs text-emerald-700 pt-1">
+                ✓ Payment successful! Redirecting...
+              </p>
+            )}
 
+            {/* Checkout Button */}
             <button
               className="btn-primary w-full mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
               type="button"
-              disabled={isCheckingOut || !items.length}
+              disabled={isCheckingOut || !items.length || paymentSuccess}
               onClick={handleCheckout}
             >
               {isCheckingOut ? "Processing..." : "Proceed to Checkout"}
@@ -237,6 +341,19 @@ function CartPage() {
           </aside>
         </div>
       )}
+
+      {/* Razorpay Payment Modal */}
+      <RazorpayCheckout
+        isOpen={showPaymentModal}
+        orderId={currentOrder?.id}
+        amount={discountedTotal}
+        customerName={customerDetails.name}
+        customerEmail={customerDetails.email}
+        customerPhone={customerDetails.phone}
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+        onCancel={handlePaymentCancel}
+      />
     </div>
   );
 }
