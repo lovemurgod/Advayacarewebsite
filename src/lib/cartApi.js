@@ -79,7 +79,15 @@ export async function createOrder(totalAmountInr, items) {
   if (orderError) {
     // Provide detailed logging to help diagnose 400 errors from PostgREST
     // eslint-disable-next-line no-console
-    console.error("Failed to create order - supabase error:", orderError);
+    console.error("❌ Failed to create order - supabase error:", {
+      message: orderError.message,
+      status: orderError.status,
+      statusText: orderError.statusText,
+      code: orderError.code,
+      hint: orderError.hint,
+      details: orderError.details,
+      fullError: orderError,
+    });
     throw orderError;
   }
 
