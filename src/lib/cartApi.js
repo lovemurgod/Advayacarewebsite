@@ -76,7 +76,12 @@ export async function createOrder(totalAmountInr, items) {
     })
     .select("id").single();
 
-  if (orderError) throw orderError;
+  if (orderError) {
+    // Provide detailed logging to help diagnose 400 errors from PostgREST
+    // eslint-disable-next-line no-console
+    console.error("Failed to create order - supabase error:", orderError);
+    throw orderError;
+  }
 
   const orderItemsPayload = items.map((item) => ({
     order_id: order.id,
