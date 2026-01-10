@@ -39,6 +39,8 @@ function CartPage() {
     name: "",
     email: "",
     phone: "",
+    address: "",
+    pinCode: "",
   });
 
   const formattedSubtotal = subtotal.toLocaleString("en-IN", {
@@ -64,8 +66,8 @@ function CartPage() {
     setPaymentError("");
 
     // Check if customer details are provided
-    if (!customerDetails.name || !customerDetails.email || !customerDetails.phone) {
-      setCheckoutError("Please provide your name, email, and phone number for checkout.");
+    if (!customerDetails.name || !customerDetails.email || !customerDetails.phone || !customerDetails.address || !customerDetails.pinCode) {
+      setCheckoutError("Please provide all details: name, email, phone, address, and pin code.");
       return;
     }
 
@@ -222,6 +224,30 @@ function CartPage() {
                     }
                     className="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#b58b2f] focus:outline-none focus:ring-0"
                     placeholder="Phone Number (10 digits) *"
+                  />
+                  <input
+                    type="text"
+                    value={customerDetails.address}
+                    onChange={(e) =>
+                      setCustomerDetails({
+                        ...customerDetails,
+                        address: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#b58b2f] focus:outline-none focus:ring-0"
+                    placeholder="Full Address *"
+                  />
+                  <input
+                    type="text"
+                    value={customerDetails.pinCode}
+                    onChange={(e) =>
+                      setCustomerDetails({
+                        ...customerDetails,
+                        pinCode: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#b58b2f] focus:outline-none focus:ring-0"
+                    placeholder="Pin Code *"
                   />
                 </div>
               </div>
