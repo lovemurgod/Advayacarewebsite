@@ -19,9 +19,12 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log("Received request to create Razorpay order");
     const { amount, orderId, customerDetails } = await req.json();
+    console.log("Request data:", { amount, orderId, customerEmail: customerDetails?.email });
 
     if (!amount || !orderId) {
+      console.error("Missing required fields:", { amount, orderId });
       return new Response(
         JSON.stringify({ error: "Missing required fields: amount, orderId" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -30,8 +33,10 @@ Deno.serve(async (req) => {
 
     const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
     const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+    console.log("Razorpay credentials check:", { keyIdExists: !!razorpayKeyId, keySecretExists: !!razorpayKeySecret });
 
     if (!razorpayKeyId || !razorpayKeySecret) {
+      console.error("Razorpay credentials not found");
       return new Response(
         JSON.stringify({ error: "Razorpay credentials not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
