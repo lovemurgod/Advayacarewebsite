@@ -1,6 +1,7 @@
 import { supabase } from "./supabaseClient";
 
-const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
+// Use environment variable or fallback to test key (public, safe to hardcode)
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_S1pqPZYLELIsdF";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 if (!RAZORPAY_KEY_ID) {
