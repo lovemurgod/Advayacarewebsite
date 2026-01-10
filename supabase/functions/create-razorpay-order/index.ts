@@ -1,43 +1,71 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-serve(async (req: Request) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-  // Handle CORS
+serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("OK", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    console.log("🔵 === CREATE RAZORPAY ORDER FUNCTION STARTED ===");
+    
+    // Parse request body
     const body = await req.json();
-    const { amount, orderId } = body;
+    console.log("📖 Request body received:", body);
+    
+    const { 
+      amount, 
+      orderId, 
+      customerDetails = {} 
+    } = body;
 
-    console.log("Request received:", { amount, orderId });
-
-    if (!amount || !orderId) {
+    // Validate required fields
+    if (!amount || !customerDetails) {
+      console.error("❌ Missing required fields");
       return new Response(
-        JSON.stringify({ error: "Missing amount or orderId" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Missing required fields: amount, customerDetails",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
+    console.log("✅ Validation passed");
+    console.log("💰 Amount:", amount);
+    console.log("👤 Customer:", customerDetails.name);
+
+    // Get Razorpay credentials from environment
     const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
     const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
 
     if (!razorpayKeyId || !razorpayKeySecret) {
-      console.error("Missing Razorpay credentials");
+      console.error("❌ Razorpay credentials not found in environment");
       return new Response(
-        JSON.stringify({ error: "Razorpay credentials not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Server configuration error: Razorpay credentials missing",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    // Call Razorpay API
+    console.log("🔐 Razorpay credentials found");
+
+    // Create Razorpay order via REST API
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
+    console.log("📡 Creating Razorpay order...");
+
     const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
@@ -45,36 +73,118 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount: Math.round(amount),
+        amount: Math.round(amount * 100), // Convert to paise
         currency: "INR",
-        receipt: `order_${orderId}`,
+        receipt: `order_${Date.now()}`,
+        notes: {
+          customer_name: customerDetails.name || "",
+          customer_email: customerDetails.email || "",
+          customer_phone: customerDetails.phone || "",
+          customer_address: customerDetails.address || "",
+          customer_pin_code: customerDetails.pinCode || "",
+        },
       }),
     });
 
+    const razorpayData = await razorpayResponse.json();
+    console.log("📊 Razorpay response status:", razorpayResponse.status);
+
     if (!razorpayResponse.ok) {
-      const error = await razorpayResponse.json();
-      console.error("Razorpay error:", error);
+      console.error("❌ Razorpay API error:", razorpayData);
       return new Response(
-        JSON.stringify({ error: "Failed to create order" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: razorpayData.error?.description || "Failed to create Razorpay order",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    const order = await razorpayResponse.json();
+    console.log("✅ Razorpay order created:", razorpayData.id);
+
+    // Save order to Supabase database
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("❌ Supabase credentials not found");
+      return new Response(
+        JSON.stringify({
+          error: "Server configuration error: Supabase credentials missing",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log("📝 Saving order to database...");
+
+    const { data: orderData, error: dbError } = await supabase
+      .from("orders")
+      .insert([
+        {
+          razorpay_order_id: razorpayData.id,
+          customer_name: customerDetails.name,
+          customer_email: customerDetails.email,
+          customer_phone: customerDetails.phone,
+          customer_address: customerDetails.address,
+          customer_pin_code: customerDetails.pinCode,
+          amount: amount,
+          currency: "INR",
+          status: "pending",
+        },
+      ])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error("❌ Database insert error:", dbError);
+      return new Response(
+        JSON.stringify({
+          error: "Failed to save order to database",
+          details: dbError.message,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("✅ Order saved to database:", orderData.id);
+
+    const response = {
+      success: true,
+      razorpayOrderId: razorpayData.id,
+      orderId: orderData.id,
+      amount: amount,
+      currency: "INR",
+    };
+
+    console.log("🎉 === FUNCTION COMPLETED SUCCESSFULLY ===");
+
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("💥 UNEXPECTED ERROR:", error);
+    console.error("Error stack:", error.stack);
 
     return new Response(
       JSON.stringify({
-        razorpayOrderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
+        error: "Internal server error",
+        message: error.message,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Error:", error.message);
-    return new Response(
-      JSON.stringify({ error: "Server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });
