@@ -1,11 +1,12 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+serve(async (req: Request) => {
   console.log("🔵 === EDGE FUNCTION STARTED ===");
   console.log("Method:", req.method);
   
@@ -26,53 +27,47 @@ Deno.serve(async (req) => {
   try {
     console.log("📖 Reading request body...");
     const body = await req.text();
-    console.log("📦 Raw body received:", body.substring(0, 100));
+    console.log("📦 Raw body length:", body.length);
     
     let parsedBody;
     try {
       parsedBody = JSON.parse(body);
       console.log("✅ JSON parsed successfully");
-      console.log("📊 Parsed body:", JSON.stringify(parsedBody).substring(0, 200));
     } catch (parseError) {
       console.error("❌ JSON parse error:", parseError.message);
       return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body", details: parseError.message }),
+        JSON.stringify({ error: "Invalid JSON", details: parseError.message }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const { amount, orderId, customerDetails } = parsedBody;
-    console.log("🔍 Extracted fields:", { amount, orderId, hasCustomerDetails: !!customerDetails });
+    console.log("🔍 Extracted:", { amount, orderId, hasCustDetails: !!customerDetails });
 
     if (!amount || !orderId) {
-      console.error("❌ Missing required fields");
+      console.error("❌ Missing: amount=" + amount + ", orderId=" + orderId);
       return new Response(
-        JSON.stringify({ error: "Missing required fields: amount, orderId", received: { amount, orderId } }),
+        JSON.stringify({ error: "Missing amount or orderId" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("🔐 Checking Razorpay credentials...");
+    console.log("🔐 Checking Razorpay secrets...");
     const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
     const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
     
-    console.log("🔑 Credentials status:", {
-      keyIdExists: !!razorpayKeyId,
-      keySecretExists: !!razorpayKeySecret,
-      keyIdPreview: razorpayKeyId ? razorpayKeyId.substring(0, 10) : "null",
-    });
+    console.log("🔑 Found keys:", { idExists: !!razorpayKeyId, secretExists: !!razorpayKeySecret });
 
     if (!razorpayKeyId || !razorpayKeySecret) {
-      console.error("❌ Razorpay credentials missing");
+      console.error("❌ Missing Razorpay secrets");
       return new Response(
-        JSON.stringify({ error: "Razorpay credentials not configured in Supabase secrets" }),
+        JSON.stringify({ error: "Razorpay secrets not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("🚀 Creating Razorpay order...");
+    console.log("🚀 Creating Razorpay order for amount:", amount);
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
-    console.log("📡 Calling Razorpay API...");
     
     const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
@@ -84,60 +79,36 @@ Deno.serve(async (req) => {
         amount: Math.round(amount),
         currency: "INR",
         receipt: `order_${orderId}`,
-        notes: {
-          orderId: orderId.toString(),
-          customerEmail: customerDetails?.email || "",
-          customerName: customerDetails?.name || "",
-        },
       }),
     });
 
-    console.log("📊 Razorpay API response status:", razorpayResponse.status);
-    const razorpayData = await razorpayResponse.text();
-    console.log("📦 Razorpay response body:", razorpayData.substring(0, 200));
+    console.log("📊 Razorpay response status:", razorpayResponse.status);
 
     if (!razorpayResponse.ok) {
-      const error = JSON.parse(razorpayData);
-      console.error("❌ Razorpay API error:", error);
+      const error = await razorpayResponse.text();
+      console.error("❌ Razorpay error:", error.substring(0, 200));
       return new Response(
-        JSON.stringify({
-          error: "Failed to create Razorpay order",
-          razorpayError: error,
-        }),
+        JSON.stringify({ error: "Razorpay API error", status: razorpayResponse.status }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const razorpayOrder = JSON.parse(razorpayData);
-    console.log("✅ Razorpay order created:", razorpayOrder.id);
+    const razorpayOrder = await razorpayResponse.json();
+    console.log("✅ Order created:", razorpayOrder.id);
 
-    const responseData = {
-      razorpayOrderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-    };
-    console.log("📤 Returning success response");
-
-    return new Response(
-      JSON.stringify(responseData),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-  } catch (error) {
-    console.error("🔴 === CAUGHT ERROR ===");
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
     return new Response(
       JSON.stringify({
-        error: "Internal server error",
-        details: error.message,
+        razorpayOrderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("🔴 ERROR:", error.message);
+    return new Response(
+      JSON.stringify({ error: "Server error", details: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
