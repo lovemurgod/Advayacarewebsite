@@ -65,6 +65,9 @@ export async function clearCartRemote() {
 }
 
 export async function createOrder(totalAmountInr, items, customerDetails = {}) {
+  // eslint-disable-next-line no-console
+  console.log("🛒 Creating order with customer details:", customerDetails);
+  
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
