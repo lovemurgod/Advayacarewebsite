@@ -376,6 +376,8 @@ function CartPage() {
         customerName={customerDetails.name}
         customerEmail={customerDetails.email}
         customerPhone={customerDetails.phone}
+        customerAddress={customerDetails.address}
+        customerPinCode={customerDetails.pinCode}
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}
         onCancel={handlePaymentCancel}

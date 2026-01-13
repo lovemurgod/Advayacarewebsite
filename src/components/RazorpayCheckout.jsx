@@ -11,6 +11,8 @@ export default function RazorpayCheckout({
   customerEmail,
   customerName,
   customerPhone,
+  customerAddress,
+  customerPinCode,
   onSuccess,
   onError,
   onCancel,
@@ -41,9 +43,11 @@ export default function RazorpayCheckout({
         Math.round(amount * 100), // Convert to paise
         orderId,
         {
-          email: customerEmail,
           name: customerName,
+          email: customerEmail,
           phone: customerPhone,
+          address: customerAddress,
+          pinCode: customerPinCode,
         }
       );
 
