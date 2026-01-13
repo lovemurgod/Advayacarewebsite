@@ -73,7 +73,7 @@ function CartPage() {
 
     setIsCheckingOut(true);
     try {
-      const order = await checkout();
+      const order = await checkout(customerDetails);
       if (order) {
         setCurrentOrder(order);
         setShowPaymentModal(true);

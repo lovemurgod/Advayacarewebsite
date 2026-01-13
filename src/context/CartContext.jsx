@@ -161,9 +161,9 @@ export function CartProvider({ children }) {
     subtotal,
     discountedTotal,
     discount,
-    checkout: async () => {
+    checkout: async (customerDetails = {}) => {
       if (!items.length || discountedTotal <= 0) return null;
-      const order = await createOrder(discountedTotal, items);
+      const order = await createOrder(discountedTotal, items, customerDetails);
       await clearCart();
       return order;
     },

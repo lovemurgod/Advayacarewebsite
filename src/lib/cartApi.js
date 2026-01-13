@@ -64,17 +64,21 @@ export async function clearCartRemote() {
   if (error) throw error;
 }
 
-export async function createOrder(totalAmountInr, items) {
-  const sessionId = getOrCreateSessionId();
-
+export async function createOrder(totalAmountInr, items, customerDetails = {}) {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      session_id: sessionId,
-      total_amount_inr: totalAmountInr,
+      customer_name: customerDetails.name || "",
+      customer_email: customerDetails.email || "",
+      customer_phone: customerDetails.phone || "",
+      customer_address: customerDetails.address || "",
+      customer_pin_code: customerDetails.pinCode || "",
+      amount: totalAmountInr,
+      currency: "INR",
       status: "pending",
     })
-    .select("id").single();
+    .select("id")
+    .single();
 
   if (orderError) {
     // Provide detailed logging to help diagnose 400 errors from PostgREST
