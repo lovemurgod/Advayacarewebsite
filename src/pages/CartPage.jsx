@@ -96,7 +96,9 @@ function CartPage() {
     );
     setPaymentError("");
     // Clear form
-    setCustomerDetails({ name: "", email: "", phone: "" });
+    setCustomerDetails({ name: "", email: "", phone: "", address: "", pinCode: "" });
+    // Clear cart after successful payment
+    clearCart();
     // Redirect to home after 2 seconds
     setTimeout(() => {
       navigate("/");
