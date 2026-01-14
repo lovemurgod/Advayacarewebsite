@@ -17,7 +17,10 @@ serve(async (req) => {
     
     // Parse request body
     const body = await req.json();
-    console.log("📖 Request body received:", body);
+    console.log("📖 Request body received:", JSON.stringify(body));
+    console.log("   - amount:", body.amount, "type:", typeof body.amount);
+    console.log("   - orderId:", body.orderId, "type:", typeof body.orderId);
+    console.log("   - customerDetails:", JSON.stringify(body.customerDetails));
     
     const { 
       amount, 
@@ -28,6 +31,8 @@ serve(async (req) => {
     // Validate required fields
     if (!amount || !customerDetails) {
       console.error("❌ Missing required fields");
+      console.error("   - amount check: !amount =", !amount, "value =", amount);
+      console.error("   - customerDetails check: !customerDetails =", !customerDetails, "value =", JSON.stringify(customerDetails));
       return new Response(
         JSON.stringify({
           error: "Missing required fields: amount, customerDetails",

@@ -25,10 +25,15 @@ export async function initializeRazorpayPayment(amount, orderId, customerDetails
     };
     
     // eslint-disable-next-line no-console
-    console.log("📤 Sending to Edge Function:", {
-      url: functionUrl,
-      payload,
-    });
+    console.log("📤 Sending to Edge Function:");
+    // eslint-disable-next-line no-console
+    console.log("   Amount:", amount, "Type:", typeof amount);
+    // eslint-disable-next-line no-console
+    console.log("   OrderId:", orderId, "Type:", typeof orderId);
+    // eslint-disable-next-line no-console
+    console.log("   CustomerDetails:", JSON.stringify(customerDetails));
+    // eslint-disable-next-line no-console
+    console.log("   Full Payload:", JSON.stringify(payload));
     
     const response = await fetch(functionUrl, {
       method: "POST",
