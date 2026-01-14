@@ -17,21 +17,32 @@ if (!RAZORPAY_KEY_ID) {
 export async function initializeRazorpayPayment(amount, orderId, customerDetails = {}) {
   try {
     const functionUrl = `${SUPABASE_URL}/functions/v1/create-razorpay-order`;
+    
+    const payload = {
+      amount, // Amount in paise (smallest currency unit)
+      orderId, // Your order ID from database
+      customerDetails,
+    };
+    
+    // eslint-disable-next-line no-console
+    console.log("📤 Sending to Edge Function:", {
+      url: functionUrl,
+      payload,
+    });
+    
     const response = await fetch(functionUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({
-        amount, // Amount in paise (smallest currency unit)
-        orderId, // Your order ID from database
-        customerDetails,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const error = await response.json();
+      // eslint-disable-next-line no-console
+      console.error("❌ Edge Function returned error:", error);
       throw new Error(error.error || `Failed to create Razorpay order: ${response.statusText}`);
     }
 
