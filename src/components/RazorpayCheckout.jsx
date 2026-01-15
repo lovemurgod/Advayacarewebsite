@@ -40,7 +40,7 @@ export default function RazorpayCheckout({
 
       // Initialize payment with backend
       const razorpayOrderData = await initializeRazorpayPayment(
-        Math.round(amount * 100), // Convert to paise
+        amount, // Amount in INR - Edge Function will convert to paise
         orderId,
         {
           name: customerName,
@@ -54,7 +54,7 @@ export default function RazorpayCheckout({
       // Open Razorpay checkout
       const options = {
         key: "rzp_test_S1pqPZYLELIsdF",
-        amount: razorpayOrderData.amount, // Amount in paise
+        // Do not pass `amount` when using `order_id` to avoid unit/display mismatches.
         currency: razorpayOrderData.currency || "INR",
         name: "Advayacare",
         description: "Skincare Products Purchase",
