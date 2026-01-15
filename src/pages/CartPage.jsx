@@ -18,6 +18,7 @@ function CartPage() {
     clearGiftCardCode,
     updateQuantity,
     removeFromCart,
+    clearCart,
     checkout,
   } = useCart();
 
