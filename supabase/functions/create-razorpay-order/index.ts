@@ -78,7 +78,8 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount: Math.round(amount * 100), // Convert to paise
+        // `amount` is expected in paise from the frontend. Do NOT multiply again.
+        amount: amount,
         currency: "INR",
         receipt: `order_${Date.now()}`,
         notes: {
