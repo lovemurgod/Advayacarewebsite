@@ -52,6 +52,8 @@ export async function initializeRazorpayPayment(amount, orderId, customerDetails
     }
 
     const data = await response.json();
+    // eslint-disable-next-line no-console
+    console.log("📥 Received from Edge Function:", JSON.stringify(data));
     return data; // { razorpayOrderId, amount, currency }
   } catch (error) {
     // eslint-disable-next-line no-console
